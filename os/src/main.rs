@@ -11,25 +11,18 @@ No access to Rust runtime or crt0, must overwrite it
 
 use core::panic::PanicInfo;
 
-static HELLO: &[u8] = b"Hello World!";
+mod vga_buffer;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    let vga_buffer = 0xb8000 as *mut u8; // cast to raw pointer
-    
-    for (i, &byte) in HELLO.iter().enumerate() {
-        unsafe {
-            // write to buffer the byte + color
-            *vga_buffer.offset(i as isize * 2) = byte;
-            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
-        }
-    }
-
+    println!("Hello World{}", "!");
+    panic!("Testing panic");
     loop {}
 }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    println!("{}", info);
     loop {}
 }
 
