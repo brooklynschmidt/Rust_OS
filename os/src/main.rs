@@ -19,6 +19,9 @@ use os::println;
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");
 
+    os::init();
+    x86_64::instructions::interrupts::int3();
+
     #[cfg(test)]
     test_main();
 
