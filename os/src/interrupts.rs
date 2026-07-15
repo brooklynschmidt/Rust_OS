@@ -19,6 +19,7 @@ pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(unsafe {
 #[repr(u8)]
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,
+    Keyboard,
 }
 
 // Timer uses line 0 of primary PIC, so we make a C-like enum
@@ -44,6 +45,7 @@ lazy_static! {
                 // this is the index of the TSS to the double fault stack
         }
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
+        idt[InterruptIndex::Keyboard.as_usize()].set_handler_function(keyboard_interrupt_handler);
         idt
     };
 }
@@ -79,6 +81,15 @@ extern "x86-interrupt" fn timer_interrupt_handler(
     */
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+    }
+}
+
+extern "x86-interrupt" fn keyboard_interrupt_handler(
+    _stack_frame: InterruptStackFrame)
+{
+    print!("k");
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
 }
 
