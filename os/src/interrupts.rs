@@ -87,7 +87,15 @@ extern "x86-interrupt" fn timer_interrupt_handler(
 extern "x86-interrupt" fn keyboard_interrupt_handler(
     _stack_frame: InterruptStackFrame)
 {
-    print!("k");
+    use x86_64::instructions::port::Port;
+    /*
+    We must read the scancode of the pressed key to allow the keyboard controller to send another interrupt
+    We must read from the data port of the PS/2 controller, which is the I/O port with the number 0x60
+    */
+    let mut port = Port::new(0x60); 
+    let scancode: u8 = unsafe { port.read() };
+    print!("{}", scancode);
+
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
