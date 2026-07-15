@@ -88,13 +88,38 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
     _stack_frame: InterruptStackFrame)
 {
     use x86_64::instructions::port::Port;
+    use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
+
+    static KEYBOARD: spin::Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
+        spin::Mutex::new(Keyboard::new(
+            ScancodeSet1::new(),
+            layouts::Us104Key,
+            HandleControl::Ignore,
+        ));
+
+    let mut keyboard = KEYBOARD.lock();
     /*
     We must read the scancode of the pressed key to allow the keyboard controller to send another interrupt
     We must read from the data port of the PS/2 controller, which is the I/O port with the number 0x60
     */
     let mut port = Port::new(0x60); 
     let scancode: u8 = unsafe { port.read() };
-    print!("{}", scancode);
+
+    /*
+    PS/2 keyboards emulate scancode set 1
+    The lower 7 bits of a scancode byte define the key
+    The most significant bit defines whether it's a press or a release
+    Keys not present in the original IBM XT keyboard generate two scancodes in succession
+    A 0xe0 escape byte and then a byte representing the key.
+    */
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+        if let Some(key) = keyboard.process_keyevent(key_event) {
+            match key {
+                DecodedKey::Unicode(character) => print!("{}", character),
+                DecodedKey::RawKey(key) => print!("{:?}", key),
+            }
+        }
+    }
 
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
