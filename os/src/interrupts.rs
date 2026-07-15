@@ -69,6 +69,17 @@ extern "x86-interrupt" fn timer_interrupt_handler(
     _stack_frame: InterruptStackFrame)
 {
     print!(".");
+
+    /* Figures out which of the PICs sent the interrupt
+    Uses the command and data ports to send an End of Interrupt signal
+    If the secondary PIC sent the interrupt, both PICs must be notified
+    The secondary PIC is connected to an input of the Primary PIC
+    Unsafe function because using the wrong interrupt vector number can lead to system hang or deleting an important unsent interrupt
+    This uses the PIT (Programmable Interval Timer)
+    */
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+    }
 }
 
 #[test_case]
