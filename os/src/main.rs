@@ -21,8 +21,19 @@ pub extern "C" fn _start() -> ! {
 
     os::init();
 
-    let ptr = 0xdeadbeaf as *mut u8;
-    unsafe { *ptr = 42; }
+    /*
+    Returns a tuple of (PhysFrame, Cr3Flags)
+    We use this to get the physical memory address of the active level 4 page table
+
+    How can we access physical memory?
+        We can't while paging is active
+        Otherwise, programs could circumvent memory protection and access the memory of other programs
+    The only way to access the table is through some virtual page that is mapped to the physical frame at address 0x1000
+    This problem of creating mappings for page table frames ia general problem, since the kernel needs to access the page tables regularly, for example, when allocating a stack for a new thread.
+    */
+    use x86_64::registers::control::Cr3;
+    let (level_4_page_table, _) = Cr3::read();
+    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
 
     #[cfg(test)]
     test_main();
