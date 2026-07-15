@@ -92,9 +92,19 @@ macro_rules! println {
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
 
+/*
+This can cause a deadlock.
+If we call print! somewhere and lock, then an interrupt happens, which also tries to call print, it will deadlock
+The interrupt can't return until it's over, but it can't grab the lock since it was grabbed prior and not freed.
+
+Solution: Disable interrupts as long as the Mutex is locked.
+*/
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    WRITER.lock().write_fmt(args).unwrap();
+    use x86_64::instructions::interrupts;
+    interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    }); 
 }
 
 /*
