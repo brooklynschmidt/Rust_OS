@@ -2,7 +2,6 @@
 #![no_std]
 #![no_main]
 
-
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};

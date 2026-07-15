@@ -1,9 +1,39 @@
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use lazy_static::lazy_static;
 use crate::println;
+use crate::print;
 use crate::gdt;
+use spin;
+use pic8259::ChainedPics;
+
+pub const PIC_1_OFFSET: u8 = 32;
+pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
+
+// Safe mutable access
+// Unsafe because ChainedPics::new can cause UB with wrong offsets.
+pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(unsafe {
+    ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET)
+});
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u8)]
+pub enum InterruptIndex {
+    Timer = PIC_1_OFFSET,
+}
+
+// Timer uses line 0 of primary PIC, so we make a C-like enum
+impl InterruptIndex {
+    fn as_u8(self) -> u8 {
+        self as u8
+    }
+
+    fn as_usize(self) -> usize {
+        usize::from(self.as_u8())
+    }
+}
 
 // We don't want to use a static mut instance of the IDT, since it would require an unsafe block on each access
+// Mutation only happens once, on initialization
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
@@ -13,6 +43,7 @@ lazy_static! {
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
                 // this is the index of the TSS to the double fault stack
         }
+        idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
         idt
     };
 }
@@ -31,6 +62,13 @@ extern "x86-interrupt" fn double_fault_handler(
     stack_frame: InterruptStackFrame, _error_code: u64) -> !
 {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame)
+}
+
+// CPU reacts similarly to exceptions and external interrupts, hence the identical function signatures
+extern "x86-interrupt" fn timer_interrupt_handler(
+    _stack_frame: InterruptStackFrame)
+{
+    print!(".");
 }
 
 #[test_case]
