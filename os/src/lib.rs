@@ -40,7 +40,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    loop {}
+    hlt_loop();
 }
 
 #[cfg(test)]
@@ -48,7 +48,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     init();
     test_main();
-    loop {}
+    hlt_loop();
 }
 
 #[cfg(test)]
@@ -78,4 +78,14 @@ pub fn init() {
     interrupts::init_idt();
     unsafe { interrupts::PICS.lock().initialize(); }
     x86_64::instructions::interrupts::enable(); // tells CPU to listen to interrupt controller, executes sti instruction
+}
+
+pub fn hlt_loop() -> ! {
+    loop {
+        /*
+        The hlt (halt) instruction puts the CPU into a sleep state until the next interrupt arrives.
+        This is a safe instruction because it can't compromise memory safety.
+        */
+        x86_64::instructions::hlt();
+    }
 }
