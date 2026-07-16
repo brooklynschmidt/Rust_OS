@@ -30,42 +30,27 @@ Also tells us which memory regions are reserved for devices such as VGA hardware
 physical_memory_offset tells us the virtual start address of the physical memory mapping
 */
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    unimplemented!();
-}
+    use os::memory::active_level_4_table;
+    use x86_64::VirtAddr;
 
-/* 
-Old _start function 
-
-#[unsafe(no_mangle)]
-pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     println!("Hello World{}", "!");
-
     os::init();
 
-    /*
-    Cr3::read
-    Returns a tuple of (PhysFrame, Cr3Flags)
-    We use this to get the physical memory address of the active level 4 page table
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let l4_table = unsafe { active_level_4_table(phys_mem_offset) };
 
-    How can we access physical memory?
-        We can't while paging is active
-        Otherwise, programs could circumvent memory protection and access the memory of other programs
-    The only way to access the table is through some virtual page that is mapped to the physical frame at address 0x1000
-    This problem of creating mappings for page table frames ia general problem, since the kernel needs to access the page tables regularly, for example, when allocating a stack for a new thread.
-    */
-    use x86_64::registers::control::Cr3;
-    let (level_4_page_table, _) = Cr3::read();
-    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
+    for (i, entry) in l4_table.iter().enumerate() {
+        if !entry.is_unused() {
+            println!("L4 Entry {}: {:?}", i, entry);
+        }
+    }
 
     #[cfg(test)]
     test_main();
 
     println!("It did not crash!");
-
     os::hlt_loop();
 }
-
-*/
 
 #[cfg(not(test))]
 #[panic_handler]
