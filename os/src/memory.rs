@@ -1,5 +1,22 @@
-use x86_64::{structures::paging::PageTable, VirtAddr, PhysAddr,};
+use x86_64::{structures::paging::PageTable, structures::paging::OffsetPageTable, VirtAddr, PhysAddr,};
 
+/*
+Mapper trait -> Generic over the page size & provides functions that operate on pages
+    translate_page -> translates a given page to a frame of the same size
+    map_to -> creates a new mapping in the page table
+Translate trait -> Provides functions that work with multiple page sizes.
+
+Three types implement these traits
+1. OffsetPageTable -> Assumes that the complete physical memory is mapped to the virtual address space at some offset
+2. MappedPageTable -> Only requires that each page table frame is mapped to the virtual address spaec at a calculable address
+3. RecursivePageTable -> Allows us to access page table frames through recursive page tables
+*/
+pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
+    unsafe {
+        let level_4_table = active_level_4_table(physical_memory_offset);
+        OffsetPageTable::new(level_4_table, physical_memory_offset)
+    }
+}
 
 /*
 Returns a mutable reference to the active level 4 table.
@@ -8,7 +25,7 @@ Unsafe as the caller must guarantee that the complete physical memory
 is mapped to virtual memory at 'physical_memory_offset'. 
 This function must only be called once to avoid aliasing &mut references, which is UB
 */
-pub unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut PageTable {
+unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut PageTable {
 
     /*
     Cr3::read
@@ -36,12 +53,14 @@ pub unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static
 }
 
 /*
+DEPRECATED: Using OffsetPageTable 
+
 Translates the given virtual address to the mapped physical address
 Returns None if the address is not mapped
 
 This function is unsafe as the caller must guarantee that the complete physical memory
 is mapped to virtual memory at the passed 'physical_memory_offset'
-*/
+
 pub unsafe fn translate_addr(addr: VirtAddr, physical_memory_offset: VirtAddr) -> Option<PhysAddr>
 {
     // Limit scope of unsafe
@@ -78,3 +97,4 @@ fn translate_addr_inner(addr: VirtAddr, physical_memory_offset: VirtAddr) -> Opt
     Some(frame.start_address() + u64::from(addr.page_offset()))
 }
 
+*/

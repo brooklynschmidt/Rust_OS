@@ -30,15 +30,15 @@ Also tells us which memory regions are reserved for devices such as VGA hardware
 physical_memory_offset tells us the virtual start address of the physical memory mapping
 */
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    use os::memory::active_level_4_table;
     use x86_64::VirtAddr;
-    use x86_64::structures::paging::PageTable;
-    use os::memory::translate_addr;
+    use x86_64::structures::paging::Translate;
+    use os::memory;
 
     println!("Hello World{}", "!");
     os::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let mapper = unsafe { memory::init(phys_mem_offset) };
     //  VGA buffer page, code page, stack page, virtual address mapped to physical address 0
     let addresses = [
         0xb8000, 0x201008, 0x0100_0020_1a10, boot_info.physical_memory_offset,
@@ -46,7 +46,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     for &address in &addresses {
         let virt = VirtAddr::new(address);
-        let phys = unsafe { translate_addr(virt, phys_mem_offset) };
+        let phys = mapper.translate_addr(virt);
         println!("{:?} -> {:?}", virt, phys);
     }
 
