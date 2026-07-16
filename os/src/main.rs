@@ -14,14 +14,36 @@ No access to Rust runtime or crt0, must overwrite it
 
 use core::panic::PanicInfo;
 use os::println;
+use bootloader::{BootInfo, entry_point};
+
+/*
+entry_point macro provides a type-checked way to define a Rust function as the entry point
+*/
+entry_point!(kernel_main);
+
+/*
+BootInfo has two fields: memory_map and physical_memory_offset
+
+memory_map tells the kernel how much physical memory is availabl in the system
+Also tells us which memory regions are reserved for devices such as VGA hardware
+
+physical_memory_offset tells us the virtual start address of the physical memory mapping
+*/
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
+    unimplemented!();
+}
+
+/* 
+Old _start function 
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     println!("Hello World{}", "!");
 
     os::init();
 
     /*
+    Cr3::read
     Returns a tuple of (PhysFrame, Cr3Flags)
     We use this to get the physical memory address of the active level 4 page table
 
@@ -42,6 +64,8 @@ pub extern "C" fn _start() -> ! {
 
     os::hlt_loop();
 }
+
+*/
 
 #[cfg(not(test))]
 #[panic_handler]
