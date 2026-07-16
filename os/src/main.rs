@@ -31,14 +31,29 @@ physical_memory_offset tells us the virtual start address of the physical memory
 */
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use x86_64::VirtAddr;
-    use x86_64::structures::paging::Translate;
+    use x86_64::structures::paging::Page;
     use os::memory;
 
     println!("Hello World{}", "!");
     os::init();
-
+    
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator = memory::EmptyFrameAllocator;
+
+    // Using "0" since we know it is used.
+    // Typically do not want to do this since this guarantees "NULL"
+    let page = Page::containing_address(VirtAddr::new(0));
+    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+
+    // Write the string 'New!' to the screen via the new mapping
+    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+    // We write a value to offset 400 as we don't write to the start of the page, because the top line of the VGA buffer is directly shifted off the screen by the next println!
+    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};
+    
+    /*
+    Testing translate function
+
     //  VGA buffer page, code page, stack page, virtual address mapped to physical address 0
     let addresses = [
         0xb8000, 0x201008, 0x0100_0020_1a10, boot_info.physical_memory_offset,
@@ -49,6 +64,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         let phys = mapper.translate_addr(virt);
         println!("{:?} -> {:?}", virt, phys);
     }
+    */
 
     #[cfg(test)]
     test_main();
