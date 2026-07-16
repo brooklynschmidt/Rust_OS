@@ -39,11 +39,12 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = memory::EmptyFrameAllocator;
-
+    let mut frame_allocator = unsafe {
+        memory::BootInfoFrameAllocator::init(&boot_info.memory_map)
+    };    
     // Using "0" since we know it is used.
     // Typically do not want to do this since this guarantees "NULL"
-    let page = Page::containing_address(VirtAddr::new(0));
+    let page = Page::containing_address(VirtAddr::new(0xdeadbeaf000));
     memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
 
     // Write the string 'New!' to the screen via the new mapping
