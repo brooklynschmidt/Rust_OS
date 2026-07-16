@@ -52,6 +52,39 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
     unsafe { &mut *page_table_ptr }
 }
 
+use x86_64::structures::paging::{Page, PhysFrame, Mapper, Size4KiB, FrameAllocator};
+
+// Creates a mapping for the given page to frame '0xb8000'
+pub fn create_example_mapping(
+    page: Page,
+    mapper: &mut OffsetPageTable,
+    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+) {
+    use x86_64::structures::paging::PageTableFlags as Flags;
+
+    let frame = PhysFrame::containing_address(PhysAddr::new(0xb8000));
+    let flags = Flags::PRESENT | Flags::WRITABLE;
+
+    // Unsafe because the caller must ensure that the frame is not already in use
+    // Mapping the same frame twice can result in UB
+    let map_to_result = unsafe {
+        mapper.map_to(page, frame, flags, frame_allocator)
+    };
+
+    // Must flush from the TLB, returns a MapperFlush type
+    map_to_result.expect("map_to failed").flush();
+}
+
+// FrameAllocator that always returns None
+pub struct EmptyFrameAllocator;
+
+// Unsafe because the implementor must guarantee that the allocator yields only unused frames
+unsafe impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        None
+    }
+}
+
 /*
 DEPRECATED: Using OffsetPageTable 
 
