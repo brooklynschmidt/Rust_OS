@@ -109,7 +109,7 @@ impl BootInfoFrameAllocator {
     // Returns an iterator over the usable frames specified in the memory map
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
         // Get usable regions
-        let regions = self.memory_map_iter();
+        let regions = self.memory_map.iter();
         let usable_regions = regions.filter(|r| r.region_type == MemoryRegionType::Usable);
         // Map each region to its address range
         let addr_ranges = usable_regions.map(|r| r.range.start_addr()..r.range.end_addr());
