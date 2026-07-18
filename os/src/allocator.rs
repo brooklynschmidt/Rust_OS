@@ -25,22 +25,17 @@ The caller must ensure various invariants when calling the methods
 
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
+use linked_list_allocator::LockedHeap;
 use x86_64::{structures::paging::{mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,}, VirtAddr,};
 
+/*
+[global_allocator] tells us which allocator to use.
+It's called LockedHeap because it uses a spinlock for synchronization
+Multiple threads could access the ALLOCATOR static at the same time
+So, we shouldn't perform any allocations in interrupt handlers; they might happen at the same time as an in-progress allocation
+*/
 #[global_allocator]
-static ALLOCATOR: Dummy = Dummy;
-
-pub struct Dummy;
-
-unsafe impl GlobalAlloc for Dummy {
-    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
-        null_mut()
-    }
-
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        panic!("Dealloc doesn't work for a dummy allocator");
-    }
-}
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 /* 
 We must create a heap memory region that the allocator can allocate memory from
@@ -69,6 +64,13 @@ pub fn init_heap(
             mapper.map_to(page, frame, flags, frame_allocator)?.flush()
         };
     }
+
+    // The empty constructor above creates an allocator without any backing memory.
+    // We must initialize this allocator after creating the heap
+    unsafe {
+        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+    }
+
     Ok(())
 }
 

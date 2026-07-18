@@ -14,7 +14,7 @@ No access to Rust runtime or crt0, must overwrite it
 
 extern crate alloc;
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
 use core::panic::PanicInfo;
 use os::println;
 use bootloader::{BootInfo, entry_point};
@@ -49,8 +49,21 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("Heap Initialization failed");
     
-    let x = Box::new(41);
-    
+    let heap_value = Box::new(41);
+    println!("Heap_value at {:p}", heap_value);
+
+    let mut vec = Vec::new();
+    for i in 0..500 {
+        vec.push(i);
+    }
+
+    println!("vec at {:p}", vec.as_slice());
+
+    let reference_counted = Rc::new(vec![1,2,3]);
+    let cloned_reference = reference_counted.clone();
+    println!("Current ref count is {}", Rc::strong_count(&cloned_reference));
+    core::mem::drop(reference_counted);
+    println!("Ref count is {} now", Rc::strong_count(&cloned_reference));
     /*
     Testing translate function 
     // Using "0" since we know it is used.
