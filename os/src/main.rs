@@ -64,6 +64,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("Current ref count is {}", Rc::strong_count(&cloned_reference));
     core::mem::drop(reference_counted);
     println!("Ref count is {} now", Rc::strong_count(&cloned_reference));
+    
     /*
     Testing translate function 
     // Using "0" since we know it is used.
