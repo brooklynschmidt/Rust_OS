@@ -36,6 +36,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use x86_64::VirtAddr;
     use x86_64::structures::paging::Page;
     use os::memory;
+    use os::allocator;
 
     println!("Hello World{}", "!");
     os::init();
@@ -45,8 +46,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let mut frame_allocator = unsafe {
         memory::BootInfoFrameAllocator::init(&boot_info.memory_map)
     }; 
+
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("Heap Initialization failed");
     
     let x = Box::new(41);
+    
     /*
     Testing translate function 
     // Using "0" since we know it is used.
