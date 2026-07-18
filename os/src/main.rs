@@ -12,6 +12,9 @@ No access to Rust runtime or crt0, must overwrite it
 #![test_runner(os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+extern crate alloc;
+
+use alloc::boxed::Box;
 use core::panic::PanicInfo;
 use os::println;
 use bootloader::{BootInfo, entry_point};
@@ -41,7 +44,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
     let mut frame_allocator = unsafe {
         memory::BootInfoFrameAllocator::init(&boot_info.memory_map)
-    };    
+    }; 
+    
+    let x = Box::new(41);
+    /*
+    Testing translate function 
     // Using "0" since we know it is used.
     // Typically do not want to do this since this guarantees "NULL"
     let page = Page::containing_address(VirtAddr::new(0xdeadbeaf000));
@@ -52,8 +59,6 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // We write a value to offset 400 as we don't write to the start of the page, because the top line of the VGA buffer is directly shifted off the screen by the next println!
     unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};
     
-    /*
-    Testing translate function
 
     //  VGA buffer page, code page, stack page, virtual address mapped to physical address 0
     let addresses = [
