@@ -60,6 +60,44 @@ impl LinkedListAllocator {
             self.head.next = Some(&mut *node_ptr)
         }
     }
+
+    // Try to use the given region for an allocation with the given size and alignment
+    fn alloc_from_region(region: &ListNode, size: usize, align: usize) -> Result<usize, ()> {
+        let alloc_start = align_up(region.start_addr(), align);
+        let alloc_end = alloc_start.checked_add(size).ok_or(())?;
+
+        if alloc_end > region.end_addr() {
+            // Too small of a region
+            return Err(());
+        }
+
+        let excess_size = region.end_addr() - alloc_end;
+        // Allocation must fit perfectly or fit a ListNode
+        if excess_size > 0 && excess_size < mem::size_of::<ListNode>() {
+            // Rest of region too small to hold a ListNode
+            return Err(());
+        }
+
+        Ok(alloc_start)
+    }
+
+    // Looks for a free region with the given size and alignment and removes it from the list
+    fn find_region(&mut self, size: usize: align: usize) -> Option<(&'static mut ListNode, usize)> {
+        let mut current = &mut self.head;
+        while let Some(ref mut region) = current.next {
+            if let Ok(alloc_start) = Self::alloc_from_region(&region, size, align) {
+                let next = region.next.take();
+                let ret = Some((current.next.take().unwrap(), alloc_start));
+                current.next = next;
+                return ret;
+            } else {
+                // Iterate through linked list
+                current = current.next.as_mut().unwrap();
+            }
+        }
+        // No suitable memory region in the linked list
+        None
+    }
 }
 
 
