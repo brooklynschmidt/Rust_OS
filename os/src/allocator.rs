@@ -26,6 +26,7 @@ The caller must ensure various invariants when calling the methods
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
 use bump::BumpAllocator;
+use linked_list::LinkedListAllocator;
 use linked_list_allocator::LockedHeap;
 use x86_64::{structures::paging::{mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,}, VirtAddr,};
 
@@ -42,8 +43,10 @@ So, we shouldn't perform any allocations in interrupt handlers; they might happe
 //static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 // Bump Allocator
-static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
+//static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
 
+// LinkedList Allocator
+static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
 
 /* 
 We must create a heap memory region that the allocator can allocate memory from
