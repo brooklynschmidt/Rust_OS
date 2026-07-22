@@ -28,10 +28,12 @@ use core::ptr::null_mut;
 use bump::BumpAllocator;
 use linked_list::LinkedListAllocator;
 use linked_list_allocator::LockedHeap;
+use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::{structures::paging::{mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,}, VirtAddr,};
 
 pub mod bump;
 pub mod linked_list;
+pub mod fixed_size_block;
 
 /*
 [global_allocator] tells us which allocator to use.
@@ -46,7 +48,10 @@ So, we shouldn't perform any allocations in interrupt handlers; they might happe
 //static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
 
 // LinkedList Allocator
-static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
+//static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
+
+// Fixed Block Allocator
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 /* 
 We must create a heap memory region that the allocator can allocate memory from
