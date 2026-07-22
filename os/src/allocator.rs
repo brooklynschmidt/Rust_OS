@@ -4,7 +4,7 @@ Compiler automatically inserts the appropriate calls to the trait methods when u
 
 The alloc method takes a Layout instance as an argument
     - Layout describes the desired size & alignment the allocated memory should have
-Returns a raw pointer to the first byte of the allocateed memory block
+Returns a raw pointer to the first byte of the allocated memory block
 Returns null pointer to signal an error
 
 The dealloc method is responsible for freeing a memory block
@@ -27,6 +27,8 @@ use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
 use linked_list_allocator::LockedHeap;
 use x86_64::{structures::paging::{mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,}, VirtAddr,};
+
+pub mod bump;
 
 /*
 [global_allocator] tells us which allocator to use.
@@ -72,6 +74,33 @@ pub fn init_heap(
     }
 
     Ok(())
+}
+
+// Wrapper around spin::Mutex to permit trait implementations
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> spi::MutexGuard<A> {
+        self.inner.lock()
+    }
+}
+
+// Aligns the given address 'addr' upwards to alignment 'align'
+fn align_up(addr: usize, align: usize) -> usize {
+    let remainder = addr % align;
+    if remainder == 0 {
+        addr
+    } else {
+        addr - remainder + align
+    }
 }
 
 
