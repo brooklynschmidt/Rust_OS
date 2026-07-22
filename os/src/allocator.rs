@@ -25,10 +25,12 @@ The caller must ensure various invariants when calling the methods
 
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
+use bump::BumpAllocator;
 use linked_list_allocator::LockedHeap;
 use x86_64::{structures::paging::{mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,}, VirtAddr,};
 
 pub mod bump;
+pub mod linked_list;
 
 /*
 [global_allocator] tells us which allocator to use.
@@ -37,7 +39,11 @@ Multiple threads could access the ALLOCATOR static at the same time
 So, we shouldn't perform any allocations in interrupt handlers; they might happen at the same time as an in-progress allocation
 */
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+//static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+// Bump Allocator
+static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
+
 
 /* 
 We must create a heap memory region that the allocator can allocate memory from
@@ -82,13 +88,13 @@ pub struct Locked<A> {
 }
 
 impl<A> Locked<A> {
-    pub const fn(inner: A) -> Self {
+    pub const fn new(inner: A) -> Self {
         Locked {
             inner: spin::Mutex::new(inner),
         }
     }
 
-    pub fn lock(&self) -> spi::MutexGuard<A> {
+    pub fn lock(&self) -> spin::MutexGuard<A> {
         self.inner.lock()
     }
 }
