@@ -8,7 +8,7 @@ Fork my repo and type `cargo build` in the terminal.
 You can also use `cargo run` to run the test example from my main file. 
 `cargo test` can be used to run the test suite for this project. 
 
-## Featuress
+## Features
 
 ## Future Directions
 
